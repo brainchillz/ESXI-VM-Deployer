@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vc-deployer"
+version = "0.1.0"
+description = "Deploy VMs from vCenter templates via cloud-init guestinfo (CLI + optional web UI)."
+readme = "README.md"
+requires-python = ">=3.9"
+# The CLI is deliberately stdlib-only — no runtime dependencies.
+dependencies = []
+
+[project.optional-dependencies]
+# Only the web UI needs these; the CLI does not. Install with: pip install .[web]
+web = [
+  "fastapi==0.115.6",
+  "uvicorn[standard]==0.34.0",
+  "pydantic==2.10.4",
+]
+
+[project.scripts]
+deploy-vm = "vmdeploy.cli:main"
+
+[tool.setuptools]
+packages = ["vmdeploy"]
+
+[tool.setuptools.package-data]
+vmdeploy = ["static/*.html"]
