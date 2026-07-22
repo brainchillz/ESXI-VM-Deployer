@@ -1,4 +1,4 @@
-# Secrets / instance config — never commit (keep real values in VC-Deployer-Infra)
+# Secrets / instance config — never commit (keep real values in your private infra repo)
 config.env
 .env
 
