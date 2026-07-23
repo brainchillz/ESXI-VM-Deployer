@@ -2,6 +2,12 @@
 config.env
 .env
 
+# Local-only working area — planning docs, design notes, scratch. Never published.
+.dev/
+
+# Personal local overrides — never published
+*.local.md
+
 # Python
 __pycache__/
 *.pyc
