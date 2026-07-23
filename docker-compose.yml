@@ -6,4 +6,11 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    volumes:
+      # Persists runtime settings edited via the ⚙ dialog (/data/settings.json),
+      # so they survive container recreation.
+      - vmdeploy-data:/data
     restart: unless-stopped
+
+volumes:
+  vmdeploy-data:

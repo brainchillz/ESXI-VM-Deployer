@@ -9,6 +9,8 @@ from __future__ import annotations
 import subprocess
 import time
 
+from . import config
+
 
 class GovcError(RuntimeError):
     pass
@@ -21,6 +23,9 @@ def _run(args: list[str], timeout: int = 120) -> str:
             capture_output=True,
             text=True,
             timeout=timeout,
+            # Effective env = process env overlaid by any runtime settings file,
+            # so ⚙-dialog edits take effect without a restart.
+            env=config.govc_env(),
         )
     except FileNotFoundError:
         raise GovcError("govc binary not found in PATH")

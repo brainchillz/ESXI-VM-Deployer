@@ -79,8 +79,25 @@ docker compose up -d --build
 # http://localhost:8000
 ```
 
+### Settings (⚙) and optional auth
+
+A ⚙ Settings dialog edits configuration from the browser — no shell needed.
+Changes are written to `/data/settings.json` (a Docker volume, so they persist
+across container recreation) and layer on top of the environment, taking effect
+on the next call.
+
+![Settings dialog](docs/web-ui-settings.png)
+
+By default the app runs **open**, and Settings can edit only the non-secret
+placement / deploy defaults — the vCenter **connection + credentials stay
+locked**. Set `VMDEPLOY_PASSWORD` (and optional `VMDEPLOY_USERNAME`, default
+`admin`) in `.env` to require HTTP Basic auth on the whole UI and unlock
+connection/credential editing. The password is **write-only** — the API never
+returns it.
+
 Endpoints: `GET /api/templates`, `GET /api/networks`, `GET /api/datastores`,
-`POST /api/deploy` (returns a job id), `GET /api/jobs/{id}` (poll progress + IP).
+`GET`/`PUT /api/settings`, `POST /api/deploy` (returns a job id),
+`GET /api/jobs/{id}` (poll progress + IP).
 
 ## Layout
 
@@ -88,8 +105,9 @@ Endpoints: `GET /api/templates`, `GET /api/networks`, `GET /api/datastores`,
 vmdeploy/
   govc.py     thin wrapper around the govc CLI
   core.py     render cloud-init + clone + inject + wait  (the shared engine)
+  config.py   effective config: env overlaid by the runtime settings file
   cli.py      the deploy-vm command
-  app.py      FastAPI web UI      (optional)
+  app.py      FastAPI web UI + auth + settings  (optional)
   jobs.py     in-memory job store (web)
   models.py   request model       (web)
   static/     web UI page
