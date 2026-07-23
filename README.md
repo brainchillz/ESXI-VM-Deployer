@@ -63,11 +63,15 @@ deploy-vm --list-templates --json
 
 Key flags: `--profile` / `--template`, `--name`, `--ip` / `--gateway` / `--dhcp`,
 `--cidr`, `--dns`, `--hostname`, `--iface`, `--user`, `--ssh-key`, `--password`,
-`--pwauth`.
+`--pwauth`, `--network`, `--datastore`, `--disk` (GB, grow-only).
 
 ## Use (web UI, optional)
 
-The web UI is a small FastAPI app that calls the same engine.
+The web UI is a small FastAPI app that calls the same engine. Pick a template,
+target network and datastore, optionally grow the disk, choose static IP or
+DHCP, and deploy — live vCenter inventory populates the dropdowns.
+
+![VC-Deployer web UI](docs/web-ui.png)
 
 ```bash
 cp .env.example .env         # same GOVC_* values as config.env
@@ -75,8 +79,8 @@ docker compose up -d --build
 # http://localhost:8000
 ```
 
-Endpoints: `GET /api/templates`, `POST /api/deploy` (returns a job id),
-`GET /api/jobs/{id}` (poll progress + IP).
+Endpoints: `GET /api/templates`, `GET /api/networks`, `GET /api/datastores`,
+`POST /api/deploy` (returns a job id), `GET /api/jobs/{id}` (poll progress + IP).
 
 ## Layout
 
