@@ -43,6 +43,20 @@ def find_templates() -> list[str]:
     return [ln.strip() for ln in out.splitlines() if ln.strip()]
 
 
+def list_networks() -> list[str]:
+    """Names of attachable networks / portgroups (NIC targets), scoped to
+    GOVC_DATACENTER. Basenames are what vm.clone -net expects."""
+    out = _run(["find", "-type", "n"])
+    return sorted({ln.rsplit("/", 1)[-1] for ln in out.splitlines() if ln.strip()})
+
+
+def list_datastores() -> list[str]:
+    """Names of available datastores, scoped to GOVC_DATACENTER. Basenames are
+    what vm.clone -ds expects."""
+    out = _run(["find", "-type", "s"])
+    return sorted({ln.rsplit("/", 1)[-1] for ln in out.splitlines() if ln.strip()})
+
+
 def get_prop(path: str, prop: str) -> str:
     return _run(["object.collect", "-s", path, prop]).strip()
 
@@ -53,8 +67,24 @@ def vm_exists(name: str) -> bool:
     return "Name:" in _run(["vm.info", name])
 
 
-def clone(template: str, name: str) -> None:
-    _run(["vm.clone", "-vm", template, "-on=false", name], timeout=900)
+def clone(template: str, name: str, *, datastore: str | None = None,
+          network: str | None = None) -> None:
+    # Placement defaults to GOVC_DATASTORE / GOVC_NETWORK in the env; an explicit
+    # datastore/network overrides just this clone (leaves the container's default
+    # intact for the next deploy).
+    args = ["vm.clone", "-vm", template, "-on=false"]
+    if datastore:
+        args += ["-ds", datastore]
+    if network:
+        args += ["-net", network]
+    args.append(name)
+    _run(args, timeout=900)
+
+
+def resize_disk(name: str, size_gb: int) -> None:
+    """Grow the VM's primary disk ('Hard disk 1') to size_gb. vSphere can only
+    grow a disk — a size smaller than the template's raises a GovcError."""
+    _run(["vm.disk.change", "-vm", name, "-disk.label", "Hard disk 1", "-size", f"{size_gb}G"])
 
 
 def set_guestinfo(name: str, metadata_b64: str, userdata_b64: str) -> None:

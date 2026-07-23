@@ -55,7 +55,25 @@
     <label>VM name</label>
     <input id="name" placeholder="web01" autocomplete="off">
 
-    <label>Network</label>
+    <div class="row">
+      <div>
+        <label>Network (portgroup)</label>
+        <select id="network"></select>
+      </div>
+      <div>
+        <label>Datastore</label>
+        <select id="datastore"></select>
+      </div>
+    </div>
+
+    <label>Disk size (GB) <span class="hint" style="display:inline">(blank = template default; grow only)</span></label>
+    <input id="disk" type="number" min="1" step="1" list="disksizes" placeholder="template default" autocomplete="off">
+    <datalist id="disksizes">
+      <option value="20"></option><option value="40"></option>
+      <option value="80"></option><option value="160"></option>
+    </datalist>
+
+    <label>IP assignment</label>
     <div class="seg" id="netseg">
       <button type="button" data-net="static" class="on">Static IP</button>
       <button type="button" data-net="dhcp">DHCP</button>
@@ -100,13 +118,32 @@ const STEP_LABEL = { checking:"Checking vCenter", cloning:"Cloning template",
   "waiting-for-ip":"Waiting for IP", done:"Done" };
 let TEMPLATES = [], netMode = "static";
 
+function fillSelect(sel, items, preselect) {
+  sel.innerHTML = "";
+  if (!items.length) {
+    const o = document.createElement("option");
+    o.value = ""; o.textContent = "(container default)";
+    sel.appendChild(o); return;
+  }
+  items.forEach(v => {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = v;
+    if (v === preselect) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
 async function loadTemplates() {
   try {
-    const [tpls, cfg] = await Promise.all([
+    const [tpls, cfg, nets, dss] = await Promise.all([
       fetch("/api/templates").then(r => { if(!r.ok) throw new Error("api"); return r.json(); }),
-      fetch("/api/config").then(r => r.json()).catch(()=>({}))
+      fetch("/api/config").then(r => r.json()).catch(()=>({})),
+      fetch("/api/networks").then(r => r.ok ? r.json() : []).catch(()=>[]),
+      fetch("/api/datastores").then(r => r.ok ? r.json() : []).catch(()=>[]),
     ]);
     TEMPLATES = tpls;
+    fillSelect($("network"), nets, cfg.default_network);
+    fillSelect($("datastore"), dss, cfg.default_datastore);
     const sel = $("template"); sel.innerHTML = "";
     if (!tpls.length) { $("tplHint").textContent = "No toolkit templates found. Build one with build-template.sh."; return; }
     tpls.forEach((t,i) => {
@@ -175,6 +212,8 @@ $("deployBtn").onclick = async () => {
     gateway: $("gateway").value.trim(), dns: $("dns").value.trim() || "1.1.1.1, 8.8.8.8",
     password: $("password").value || null, ssh_key: $("sshkey").value.trim() || null,
     pwauth: $("pwauth").checked,
+    network: $("network").value || null, datastore: $("datastore").value || null,
+    disk_gb: $("disk").value ? parseInt($("disk").value, 10) : null,
   };
   $("deployBtn").disabled = true; $("deployBtn").textContent = "Deploying…";
   try {

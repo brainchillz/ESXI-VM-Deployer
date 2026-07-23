@@ -58,6 +58,9 @@ class Spec:
     password: Optional[str]
     ssh_key: Optional[str]
     pwauth: bool
+    network: Optional[str] = None
+    datastore: Optional[str] = None
+    disk_gb: Optional[int] = None
 
 
 def _templates_or_die() -> list[dict]:
@@ -161,6 +164,9 @@ def cmd_deploy(args) -> int:
         password=args.password,
         ssh_key=ssh_key,
         pwauth=args.pwauth,
+        network=args.network,
+        datastore=args.datastore,
+        disk_gb=args.disk,
     )
 
     steps = {
@@ -206,6 +212,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--cidr", default=os.environ.get("DEFAULT_CIDR", "24"), help="Subnet prefix length")
     p.add_argument("--dns", default=os.environ.get("DEFAULT_DNS", "1.1.1.1, 8.8.8.8"),
                    help="DNS servers, comma-separated")
+    p.add_argument("--network", help="vCenter network/portgroup for the NIC (default: GOVC_NETWORK)")
+    p.add_argument("--datastore", help="Datastore to place the VM on (default: GOVC_DATASTORE)")
+    p.add_argument("--disk", type=int, metavar="GB",
+                   help="Grow the primary disk to GB (grow-only; default: template size)")
     p.add_argument("--iface", help="Guest NIC name (default: from template annotation)")
     p.add_argument("--user", help="Username to create (default: from template annotation)")
     p.add_argument("--ssh-key", help="Public key FILE to authorize (default: ~/.ssh/id_ed25519.pub)")

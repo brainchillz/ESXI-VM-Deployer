@@ -128,7 +128,14 @@ def deploy(spec, progress=lambda step: None) -> str:
     )
 
     progress("cloning")
-    govc.clone(spec.template, name)
+    govc.clone(
+        spec.template, name,
+        datastore=getattr(spec, "datastore", None),
+        network=getattr(spec, "network", None),
+    )
+    disk_gb = getattr(spec, "disk_gb", None)
+    if disk_gb:
+        govc.resize_disk(name, disk_gb)
     progress("injecting")
     govc.set_guestinfo(name, _gzb64(md), _gzb64(ud))
     progress("powering-on")

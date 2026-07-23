@@ -25,6 +25,11 @@ class DeploySpec(BaseModel):
     gateway: Optional[str] = None
     dns: str = "1.1.1.1, 8.8.8.8"
 
+    # Placement overrides (each defaults to the container's GOVC_* env when None)
+    network: Optional[str] = None      # NIC portgroup   -> vm.clone -net
+    datastore: Optional[str] = None    # target datastore -> vm.clone -ds
+    disk_gb: Optional[int] = None      # grow primary disk to N GB (None = template size)
+
     # Auth (at least one of password / ssh_key required)
     password: Optional[str] = None
     ssh_key: Optional[str] = None
@@ -45,3 +50,5 @@ class DeploySpec(BaseModel):
                 raise ValueError("Static mode requires both an IP and a gateway (or choose DHCP)")
         if not self.password and not self.ssh_key:
             raise ValueError("Provide a password or an SSH public key (else the VM is unreachable)")
+        if self.disk_gb is not None and self.disk_gb <= 0:
+            raise ValueError("Disk size must be a positive number of GB (or leave blank for the template default)")

@@ -21,14 +21,35 @@ def index() -> str:
 
 @app.get("/api/config")
 def config() -> dict:
-    """Non-secret UI config (e.g. a prefill SSH key)."""
-    return {"default_ssh_pubkey": os.environ.get("DEFAULT_SSH_PUBKEY", "").strip()}
+    """Non-secret UI config: prefill SSH key + the container's default placement
+    (so the UI can preselect the network/datastore the operator normally uses)."""
+    return {
+        "default_ssh_pubkey": os.environ.get("DEFAULT_SSH_PUBKEY", "").strip(),
+        "default_network": os.environ.get("GOVC_NETWORK", "").strip(),
+        "default_datastore": os.environ.get("GOVC_DATASTORE", "").strip(),
+    }
 
 
 @app.get("/api/templates")
 def templates() -> list[dict]:
     try:
         return core.list_templates()
+    except govc.GovcError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.get("/api/networks")
+def networks() -> list[str]:
+    try:
+        return govc.list_networks()
+    except govc.GovcError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.get("/api/datastores")
+def datastores() -> list[str]:
+    try:
+        return govc.list_datastores()
     except govc.GovcError as e:
         raise HTTPException(status_code=502, detail=str(e))
 
