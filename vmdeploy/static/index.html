@@ -278,8 +278,13 @@ async function loadTemplates() {
 function onTemplate() {
   const t = TEMPLATES[$("template").value]; if(!t) return;
   $("username").value = t.default_username || "";
+  const win = (t.os_family || "linux") === "windows";
   $("tplHint").innerHTML = `profile <b>${t.profile||"?"}</b> · admin group <code>${t.admin_group}</code>` +
-    ` · ssh <code>${t.ssh_service}</code> · nic <code>${t.iface}</code>`;
+    ` · ssh <code>${t.ssh_service}</code> · nic <code>${t.iface}</code>` +
+    (win ? ` · <b>Windows</b> (DHCP-only)` : "");
+  // Windows deploys are DHCP-only: force DHCP and lock the segment control.
+  if (win && netMode === "static") $("netseg").querySelector('[data-net="dhcp"]').click();
+  [...$("netseg").children].forEach(b => { b.disabled = win && b.dataset.net === "static"; });
 }
 $("netseg").onclick = e => {
   if (e.target.tagName !== "BUTTON") return;
@@ -373,7 +378,7 @@ $("deployBtn").onclick = async () => {
   if (!t) { $("formErr").textContent = "Pick a template."; return; }
   const spec = {
     template: t.name, admin_group: t.admin_group, ssh_service: t.ssh_service,
-    iface: t.iface, username: $("username").value.trim(),
+    iface: t.iface, os_family: t.os_family || "linux", username: $("username").value.trim(),
     name: $("name").value.trim(), dhcp: netMode === "dhcp",
     ip: $("ip").value.trim(), cidr: $("cidr").value.trim() || "24",
     gateway: $("gateway").value.trim(), dns: $("dns").value.trim() || "1.1.1.1, 8.8.8.8",

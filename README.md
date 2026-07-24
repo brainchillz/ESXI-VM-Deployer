@@ -66,6 +66,18 @@ Key flags: `--profile` / `--template`, `--name`, `--ip` / `--gateway` / `--dhcp`
 `--pwauth`, `--network`, `--datastore`, `--disk` (GB, grow-only), `--cpus`,
 `--memory` (GB).
 
+### Windows templates
+
+Templates whose annotation carries `os_family=windows` (built by
+VC-Deployer-Builder's `windows-2025` profile) deploy through the same engine:
+the client renders **Cloudbase-Init** metadata (`admin-username`,
+`admin-password`, `public-keys-data`) and PowerShell userdata over the same
+`guestinfo.*` transport, and the clone comes up with your user in
+Administrators, SSH (OpenSSH Server) and RDP enabled, and its settled IP
+published to `guestinfo.deploy.ipv4`. Windows deploys are **DHCP-only** for
+now, and the first boot takes noticeably longer than Linux (sysprep
+specialize + reboot before Cloudbase-Init runs).
+
 ## Use (web UI, optional)
 
 The web UI is a small FastAPI app that calls the same engine. Pick a template,

@@ -63,6 +63,7 @@ class Spec:
     disk_gb: Optional[int] = None
     cpus: Optional[int] = None
     memory_gb: Optional[int] = None
+    os_family: str = "linux"
 
 
 def _templates_or_die() -> list[dict]:
@@ -143,7 +144,10 @@ def cmd_deploy(args) -> int:
     meta = _resolve_template(args, _templates_or_die())
 
     ssh_key = _resolve_ssh_key(args.ssh_key)
+    os_family = meta.get("os_family", "linux")
     # Validation (CLI-side; the web path uses models.DeploySpec.validate_request).
+    if os_family == "windows" and not args.dhcp:
+        die("Windows deploys are DHCP-only for now (pass --dhcp).")
     if not args.dhcp and (not args.ip or not args.gateway):
         die("Static mode needs --ip and --gateway (or pass --dhcp).")
     if not args.password and not ssh_key:
@@ -171,6 +175,7 @@ def cmd_deploy(args) -> int:
         disk_gb=args.disk,
         cpus=args.cpus,
         memory_gb=args.memory,
+        os_family=os_family,
     )
 
     steps = {
@@ -195,6 +200,8 @@ def cmd_deploy(args) -> int:
     print(f"{GREEN}✓ Deployed {spec.name}{RESET}")
     print(f"  Address : {addr}")
     print(f"  Login   : ssh {spec.username}@{login_host}")
+    if spec.os_family == "windows":
+        print(f"  RDP     : {login_host} (user {spec.username})")
     return 0
 
 

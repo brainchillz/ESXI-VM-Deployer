@@ -13,6 +13,7 @@ class DeploySpec(BaseModel):
     ssh_service: str
     iface: str
     username: str
+    os_family: str = "linux"           # from the template annotation; 'windows' switches rendering
 
     # Identity
     name: str
@@ -49,6 +50,8 @@ class DeploySpec(BaseModel):
 
     def validate_request(self) -> None:
         """Cross-field checks the route surfaces as 400s."""
+        if self.os_family == "windows" and not self.dhcp:
+            raise ValueError("Windows deploys are DHCP-only for now (choose DHCP)")
         if not self.dhcp:
             if not self.ip or not self.gateway:
                 raise ValueError("Static mode requires both an IP and a gateway (or choose DHCP)")

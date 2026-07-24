@@ -32,7 +32,15 @@ built=2025-01-01T00:00:00Z
 | `admin_group` | sudo/wheel group | `usermod -aG` |
 | `ssh_service` | ssh unit name (`ssh` / `sshd`) | enabling sshd |
 | `iface` | guest NIC name | netplan interface |
+| `os_family` | `linux` (default when absent) or `windows` | rendering branch: cloud-init vs Cloudbase-Init payloads |
 | `os_id`, `built` | informational | display only |
+
+`os_family=windows` templates carry Cloudbase-Init configured for the VMware
+guestinfo datasource, so the transport is identical — the client just renders
+Cloudbase metadata keys (`admin-username`, `admin-password`, `public-keys-data`)
+and PowerShell userdata instead of netplan + `#cloud-config`. Windows deploys
+are **DHCP-only** for now. The key is additive: clients that predate it treat
+every template as Linux.
 
 ## Discovery
 
