@@ -61,6 +61,8 @@ class Spec:
     network: Optional[str] = None
     datastore: Optional[str] = None
     disk_gb: Optional[int] = None
+    cpus: Optional[int] = None
+    memory_gb: Optional[int] = None
 
 
 def _templates_or_die() -> list[dict]:
@@ -167,6 +169,8 @@ def cmd_deploy(args) -> int:
         network=args.network,
         datastore=args.datastore,
         disk_gb=args.disk,
+        cpus=args.cpus,
+        memory_gb=args.memory,
     )
 
     steps = {
@@ -216,6 +220,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--datastore", help="Datastore to place the VM on (default: GOVC_DATASTORE)")
     p.add_argument("--disk", type=int, metavar="GB",
                    help="Grow the primary disk to GB (grow-only; default: template size)")
+    p.add_argument("--cpus", type=int, metavar="N",
+                   help="vCPU count for the VM (default: template sizing)")
+    p.add_argument("--memory", type=int, metavar="GB",
+                   help="Memory in GB for the VM (default: template sizing)")
     p.add_argument("--iface", help="Guest NIC name (default: from template annotation)")
     p.add_argument("--user", help="Username to create (default: from template annotation)")
     p.add_argument("--ssh-key", help="Public key FILE to authorize (default: ~/.ssh/id_ed25519.pub)")

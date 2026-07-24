@@ -130,6 +130,34 @@
     <textarea id="sshkey" placeholder="ssh-ed25519 AAAA…"></textarea>
   </div>
 
+  <!-- Compute sizing -->
+  <div class="card">
+    <div class="card-title">Compute</div>
+    <div class="row">
+      <div>
+        <label>vCPUs</label>
+        <select id="cpus">
+          <option value="">template default</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div>
+        <label>Memory</label>
+        <select id="memory">
+          <option value="">template default</option>
+          <option value="2">2 GB</option>
+          <option value="4">4 GB</option>
+          <option value="8">8 GB</option>
+          <option value="16">16 GB</option>
+          <option value="32">32 GB</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
   <!-- Storage / placement -->
   <div class="card">
     <div class="card-title">Storage</div>
@@ -353,6 +381,8 @@ $("deployBtn").onclick = async () => {
     pwauth: $("pwauth").checked,
     network: $("network").value || null, datastore: $("datastore").value || null,
     disk_gb: $("disk").value ? parseInt($("disk").value, 10) : null,
+    cpus: $("cpus").value ? parseInt($("cpus").value, 10) : null,
+    memory_gb: $("memory").value ? parseInt($("memory").value, 10) : null,
   };
   $("deployBtn").disabled = true; $("deployBtn").textContent = "Deploying…";
   try {

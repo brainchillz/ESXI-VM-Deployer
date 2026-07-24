@@ -63,13 +63,15 @@ deploy-vm --list-templates --json
 
 Key flags: `--profile` / `--template`, `--name`, `--ip` / `--gateway` / `--dhcp`,
 `--cidr`, `--dns`, `--hostname`, `--iface`, `--user`, `--ssh-key`, `--password`,
-`--pwauth`, `--network`, `--datastore`, `--disk` (GB, grow-only).
+`--pwauth`, `--network`, `--datastore`, `--disk` (GB, grow-only), `--cpus`,
+`--memory` (GB).
 
 ## Use (web UI, optional)
 
 The web UI is a small FastAPI app that calls the same engine. Pick a template,
-target network and datastore, optionally grow the disk, choose static IP or
-DHCP, and deploy — live vCenter inventory populates the dropdowns.
+target network and datastore, optionally grow the disk and set vCPUs / memory,
+choose static IP or DHCP, and deploy — live vCenter inventory populates the
+dropdowns.
 
 ![VC-Deployer web UI](docs/web-ui.png)
 

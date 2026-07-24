@@ -86,6 +86,17 @@ def clone(template: str, name: str, *, datastore: str | None = None,
     _run(args, timeout=900)
 
 
+def set_resources(name: str, *, cpus: int | None = None, memory_mb: int | None = None) -> None:
+    """Set vCPU count and/or memory on the (still powered-off) clone. Omitted
+    values keep the template's sizing."""
+    args = ["vm.change", "-vm", name]
+    if cpus:
+        args += ["-c", str(cpus)]
+    if memory_mb:
+        args += ["-m", str(memory_mb)]
+    _run(args)
+
+
 def resize_disk(name: str, size_gb: int) -> None:
     """Grow the VM's primary disk ('Hard disk 1') to size_gb. vSphere can only
     grow a disk — a size smaller than the template's raises a GovcError."""

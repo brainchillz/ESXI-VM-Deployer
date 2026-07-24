@@ -136,6 +136,11 @@ def deploy(spec, progress=lambda step: None) -> str:
     disk_gb = getattr(spec, "disk_gb", None)
     if disk_gb:
         govc.resize_disk(name, disk_gb)
+    cpus = getattr(spec, "cpus", None)
+    memory_gb = getattr(spec, "memory_gb", None)
+    if cpus or memory_gb:
+        govc.set_resources(name, cpus=cpus,
+                           memory_mb=memory_gb * 1024 if memory_gb else None)
     progress("injecting")
     govc.set_guestinfo(name, _gzb64(md), _gzb64(ud))
     progress("powering-on")

@@ -30,6 +30,10 @@ class DeploySpec(BaseModel):
     datastore: Optional[str] = None    # target datastore -> vm.clone -ds
     disk_gb: Optional[int] = None      # grow primary disk to N GB (None = template size)
 
+    # Compute sizing (None = keep the template's sizing)
+    cpus: Optional[int] = None         # vCPU count      -> vm.change -c
+    memory_gb: Optional[int] = None    # memory in GB    -> vm.change -m
+
     # Auth (at least one of password / ssh_key required)
     password: Optional[str] = None
     ssh_key: Optional[str] = None
@@ -52,3 +56,7 @@ class DeploySpec(BaseModel):
             raise ValueError("Provide a password or an SSH public key (else the VM is unreachable)")
         if self.disk_gb is not None and self.disk_gb <= 0:
             raise ValueError("Disk size must be a positive number of GB (or leave blank for the template default)")
+        if self.cpus is not None and not 1 <= self.cpus <= 128:
+            raise ValueError("vCPU count must be between 1 and 128 (or leave blank for the template default)")
+        if self.memory_gb is not None and not 1 <= self.memory_gb <= 1024:
+            raise ValueError("Memory must be between 1 and 1024 GB (or leave blank for the template default)")
