@@ -1,7 +1,9 @@
 services:
   esxi-vmdeploy:
     build: .
-    image: esxi-vmdeploy:latest
+    # Published by .github/workflows/docker.yml on every push to main;
+    # `docker compose pull` upgrades without a local build.
+    image: ghcr.io/brainchillz/esxi-vm-deployer:latest
     ports:
       - "8001:8000"
     env_file:
