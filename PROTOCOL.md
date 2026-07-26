@@ -1,6 +1,6 @@
 # Template annotation protocol
 
-Templates built by **VC-Deployer-Builder** are marked with a vCenter VM
+Templates built by **VC-Deployer-Builder** are marked with a VM
 *annotation* so the clients (**VC-Deployer-Python**, **VC-Deployer-Shell**) can
 discover which templates are deployable and how to configure a VM from them —
 without reading any profile files at deploy time.

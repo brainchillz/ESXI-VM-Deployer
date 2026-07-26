@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VM Deployer</title>
+<title>ESXi VM Deployer</title>
 <style>
   :root { --bg:#0f1420; --card:#171e2e; --line:#26304a; --fg:#e6ebf5; --mut:#8b97b1;
           --accent:#4f8cff; --ok:#37d67a; --err:#ff5c6c; --pend:#f0b429; }
@@ -74,8 +74,8 @@
 <div class="wrap">
   <div class="topbar">
     <div>
-      <h1>VM Deployer</h1>
-      <p class="sub">Clone a vCenter template into a new VM — static IP or DHCP, a sudo user, and SSH.</p>
+      <h1>ESXi VM Deployer</h1>
+      <p class="sub">Deploy a template on a standalone ESXi host into a new VM — static IP or DHCP, a sudo user, and SSH.</p>
     </div>
     <button class="gear" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
   </div>
@@ -189,12 +189,12 @@
       <button class="iconbtn" id="settingsClose" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
-      <div class="sect-title">vCenter connection <span class="badge-lock" id="connLock" style="display:none">locked</span></div>
+      <div class="sect-title">ESXi host connection <span class="badge-lock" id="connLock" style="display:none">locked</span></div>
       <div id="connWarn" class="warn" style="display:none">
-        Set <code>VMDEPLOY_PASSWORD</code> (and sign in) to edit the vCenter connection or credentials.
+        Set <code>VMDEPLOY_PASSWORD</code> (and sign in) to edit the ESXi connection or credentials.
         The placement defaults below are editable now.
       </div>
-      <label>vCenter URL</label><input id="s_GOVC_URL" placeholder="https://vcenter.example.com" autocomplete="off">
+      <label>ESXi URL</label><input id="s_GOVC_URL" placeholder="https://esxi-host.example.com/sdk" autocomplete="off">
       <label>Username</label><input id="s_GOVC_USERNAME" autocomplete="off">
       <label>Password <span class="hint" style="display:inline">(leave blank to keep current)</span></label>
       <input id="s_GOVC_PASSWORD" type="password" autocomplete="new-password">
@@ -202,14 +202,9 @@
 
       <div class="sect-title">Placement defaults</div>
       <div class="row">
-        <div><label>Datacenter</label><input id="s_GOVC_DATACENTER" autocomplete="off"></div>
         <div><label>Datastore</label><input id="s_GOVC_DATASTORE" autocomplete="off"></div>
-      </div>
-      <div class="row">
         <div><label>Network</label><input id="s_GOVC_NETWORK" autocomplete="off"></div>
-        <div><label>VM folder</label><input id="s_GOVC_FOLDER" autocomplete="off"></div>
       </div>
-      <label>Resource pool</label><input id="s_GOVC_RESOURCE_POOL" autocomplete="off">
 
       <div class="sect-title">Deploy defaults</div>
       <div class="row">
@@ -229,11 +224,11 @@
 <script>
 const $ = id => document.getElementById(id);
 const STEPS = ["checking","cloning","injecting","powering-on","waiting-for-ip","done"];
-const STEP_LABEL = { checking:"Checking vCenter", cloning:"Cloning template",
+const STEP_LABEL = { checking:"Checking ESXi host", cloning:"Copying template disk",
   injecting:"Injecting cloud-init", "powering-on":"Powering on",
   "waiting-for-ip":"Waiting for IP", done:"Done" };
 const CONN_KEYS = ["GOVC_URL","GOVC_USERNAME","GOVC_PASSWORD","GOVC_INSECURE"];
-const PLACE_KEYS = ["GOVC_DATACENTER","GOVC_DATASTORE","GOVC_RESOURCE_POOL","GOVC_FOLDER","GOVC_NETWORK"];
+const PLACE_KEYS = ["GOVC_DATASTORE","GOVC_NETWORK"];
 const DEF_KEYS = ["DEFAULT_PROFILE","DEFAULT_CIDR","DEFAULT_DNS","DEFAULT_SSH_PUBKEY"];
 let TEMPLATES = [], netMode = "static";
 
@@ -272,7 +267,7 @@ async function loadTemplates() {
     if (cfg.default_ssh_pubkey) $("sshkey").value = cfg.default_ssh_pubkey;
     sel.onchange = onTemplate; onTemplate();
   } catch(e) {
-    $("tplHint").textContent = "Could not reach vCenter — check the connection in ⚙ Settings or the container's env.";
+    $("tplHint").textContent = "Could not reach the ESXi host — check the connection in ⚙ Settings or the container's env.";
   }
 }
 function onTemplate() {

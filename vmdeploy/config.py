@@ -17,11 +17,14 @@ import json
 import os
 from pathlib import Path
 
-# vCenter connection — sensitive; editing these requires app auth.
+# ESXi host connection — sensitive; editing these requires app auth.
 CONNECTION_KEYS = ["GOVC_URL", "GOVC_USERNAME", "GOVC_PASSWORD", "GOVC_INSECURE"]
-# Placement + deploy defaults — non-secret, editable without auth.
-PLACEMENT_KEYS = ["GOVC_DATACENTER", "GOVC_DATASTORE", "GOVC_RESOURCE_POOL",
-                  "GOVC_FOLDER", "GOVC_NETWORK"]
+# Placement + deploy defaults — non-secret, editable without auth. A standalone
+# host has one synthetic datacenter (ha-datacenter), one implicit resource pool
+# and no VM folders, so unlike the vCenter deployer only datastore + network
+# are surfaced; GOVC_DATACENTER etc. still pass through from the process env
+# for anyone who sets them.
+PLACEMENT_KEYS = ["GOVC_DATASTORE", "GOVC_NETWORK"]
 DEFAULT_KEYS = ["DEFAULT_PROFILE", "DEFAULT_CIDR", "DEFAULT_DNS", "DEFAULT_SSH_PUBKEY"]
 
 GOVC_KEYS = CONNECTION_KEYS + PLACEMENT_KEYS

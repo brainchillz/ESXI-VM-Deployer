@@ -18,7 +18,7 @@ _basic = HTTPBasic(auto_error=False)
 
 def require_auth(creds: Optional[HTTPBasicCredentials] = Depends(_basic)) -> None:
     """HTTP Basic auth, enforced only when VMDEPLOY_PASSWORD is set. Until then
-    the app is open (backward compatible), but editing the vCenter connection /
+    the app is open (backward compatible), but editing the ESXi connection /
     credentials stays locked (see put_settings)."""
     password = os.environ.get("VMDEPLOY_PASSWORD", "")
     if not password:
@@ -37,7 +37,7 @@ def require_auth(creds: Optional[HTTPBasicCredentials] = Depends(_basic)) -> Non
         )
 
 
-app = FastAPI(title="VM Deployer", dependencies=[Depends(require_auth)])
+app = FastAPI(title="ESXi VM Deployer", dependencies=[Depends(require_auth)])
 _INDEX = (Path(__file__).parent / "static" / "index.html").read_text()
 
 
@@ -91,12 +91,12 @@ def get_settings() -> dict:
 
 @app.put("/api/settings")
 def put_settings(body: dict) -> dict:
-    """Persist edited settings to the mounted config file. Editing the vCenter
+    """Persist edited settings to the mounted config file. Editing the ESXi
     connection/credentials requires app auth (VMDEPLOY_PASSWORD)."""
     if any(k in body for k in config.CONNECTION_KEYS) and not config.auth_configured():
         raise HTTPException(
             status_code=403,
-            detail="Set VMDEPLOY_PASSWORD (and sign in) to edit the vCenter "
+            detail="Set VMDEPLOY_PASSWORD (and sign in) to edit the ESXi "
                    "connection or credentials.",
         )
     try:

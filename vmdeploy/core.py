@@ -159,7 +159,15 @@ def deploy(spec, progress=lambda step: None) -> str:
     Returns the VM's IP. `progress` is called with step names for the UI."""
     name = spec.name
     progress("checking")
-    govc.about()
+    # On ESXi a template is just a powered-off VM — nothing type-level stops us
+    # from clobbering one, so refuse template-shaped names outright.
+    if name.endswith("-template"):
+        raise ValueError("VM names ending in '-template' are reserved for templates")
+    if govc.api_type() != "HostAgent":
+        raise ValueError(
+            "This deployer targets standalone ESXi hosts, but GOVC_URL points at "
+            "a vCenter — use the original VC-Deployer for vCenter."
+        )
     if govc.vm_exists(name):
         raise ValueError(f"A VM named '{name}' already exists")
 
@@ -186,19 +194,17 @@ def deploy(spec, progress=lambda step: None) -> str:
         )
 
     progress("cloning")
+    # Disk/CPU/RAM sizing happens inside clone() (grow-before-attach +
+    # create-time sizing) — no post-create reconfigure on ESXi.
+    memory_gb = getattr(spec, "memory_gb", None)
     govc.clone(
         spec.template, name,
         datastore=getattr(spec, "datastore", None),
         network=getattr(spec, "network", None),
+        disk_gb=getattr(spec, "disk_gb", None),
+        cpus=getattr(spec, "cpus", None),
+        memory_mb=memory_gb * 1024 if memory_gb else None,
     )
-    disk_gb = getattr(spec, "disk_gb", None)
-    if disk_gb:
-        govc.resize_disk(name, disk_gb)
-    cpus = getattr(spec, "cpus", None)
-    memory_gb = getattr(spec, "memory_gb", None)
-    if cpus or memory_gb:
-        govc.set_resources(name, cpus=cpus,
-                           memory_mb=memory_gb * 1024 if memory_gb else None)
     progress("injecting")
     govc.set_guestinfo(name, _gzb64(md), _gzb64(ud))
     progress("powering-on")

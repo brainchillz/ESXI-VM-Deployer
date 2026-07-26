@@ -10,7 +10,7 @@ CLI builds its own duck-typed spec instead of importing the pydantic model
 Python 3 + govc — nothing to pip install.
 
 Profile metadata (user / admin group / ssh unit / NIC) is discovered from the
-template's vCenter annotation via core.list_templates() — so, unlike the bash
+template's VM annotation via core.list_templates() — so, unlike the bash
 client, there are no profiles/*.env or cloud-init/*.tpl.yaml files to ship.
 
 Connection/placement come from GOVC_* env vars (source config.env first), the
@@ -70,15 +70,15 @@ def _templates_or_die() -> list[dict]:
     try:
         return core.list_templates()
     except govc.GovcError as e:
-        die(f"vCenter/govc error: {e}")
+        die(f"ESXi/govc error: {e}")
 
 
 def cmd_list_templates(as_json: bool) -> int:
-    log("Checking vCenter connectivity")
+    log("Checking ESXi host connectivity")
     try:
         govc.about()
     except govc.GovcError as e:
-        die(f"Cannot reach vCenter (check config.env / GOVC_* env): {e}")
+        die(f"Cannot reach the ESXi host (check config.env / GOVC_* env): {e}")
     tpls = _templates_or_die()
     if as_json:
         import json
@@ -135,11 +135,11 @@ def _resolve_ssh_key(path: Optional[str]) -> Optional[str]:
 
 
 def cmd_deploy(args) -> int:
-    log("Checking vCenter connectivity")
+    log("Checking ESXi host connectivity")
     try:
         govc.about()
     except govc.GovcError as e:
-        die(f"Cannot reach vCenter (check config.env / GOVC_* env): {e}")
+        die(f"Cannot reach the ESXi host (check config.env / GOVC_* env): {e}")
 
     meta = _resolve_template(args, _templates_or_die())
 
@@ -179,8 +179,8 @@ def cmd_deploy(args) -> int:
     )
 
     steps = {
-        "checking": "Checking vCenter",
-        "cloning": f"Cloning template '{spec.template}' -> '{spec.name}'",
+        "checking": "Checking ESXi host",
+        "cloning": f"Copying template disk '{spec.template}' -> '{spec.name}' (full copy; a few minutes)",
         "injecting": f"Injecting cloud-init (user '{spec.username}', SSH)",
         "powering-on": f"Powering on '{spec.name}'",
         "waiting-for-ip": "Waiting for the guest to report its IP (up to 5 min)...",
@@ -191,7 +191,7 @@ def cmd_deploy(args) -> int:
     except (govc.GovcError, ValueError, TimeoutError) as e:
         die(str(e))
 
-    login_host = ip or (spec.ip if not spec.dhcp else "<see vCenter>")
+    login_host = ip or (spec.ip if not spec.dhcp else "<see ESXi>")
     if spec.dhcp:
         addr = f"DHCP  ->  {ip}" if ip else "DHCP"
     else:
@@ -208,7 +208,7 @@ def cmd_deploy(args) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="deploy-vm",
-        description="Deploy a VM from a vCenter template (Python client on the shared core).",
+        description="Deploy a VM from a template on a standalone ESXi host (Python client on the shared core).",
     )
     p.add_argument("--list-templates", action="store_true",
                    help="List deployable (toolkit-managed) templates, then exit")
@@ -223,7 +223,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--cidr", default=os.environ.get("DEFAULT_CIDR", "24"), help="Subnet prefix length")
     p.add_argument("--dns", default=os.environ.get("DEFAULT_DNS", "1.1.1.1, 8.8.8.8"),
                    help="DNS servers, comma-separated")
-    p.add_argument("--network", help="vCenter network/portgroup for the NIC (default: GOVC_NETWORK)")
+    p.add_argument("--network", help="ESXi portgroup for the NIC (default: GOVC_NETWORK)")
     p.add_argument("--datastore", help="Datastore to place the VM on (default: GOVC_DATASTORE)")
     p.add_argument("--disk", type=int, metavar="GB",
                    help="Grow the primary disk to GB (grow-only; default: template size)")
