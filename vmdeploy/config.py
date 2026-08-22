@@ -67,7 +67,20 @@ def govc_env() -> dict:
 
 
 def auth_configured() -> bool:
-    return bool(os.environ.get("VMDEPLOY_PASSWORD", ""))
+    """Whether the app requires authentication at all.
+
+    Always true now. It used to mean "VMDEPLOY_PASSWORD is set", back when an
+    unset password left the whole API open and this flag was what kept the
+    vCenter credentials behind something. Authentication is unconditional
+    since accounts replaced the shared password — every route outside
+    auth.PUBLIC_PATHS needs a session or HTTP Basic — so anything that reaches
+    a settings endpoint has already proved who it is.
+
+    Kept as a function because the UI reads the flag, and because a caller
+    asking "is this thing protected?" deserves an answer that stays true if
+    the model changes again.
+    """
+    return True
 
 
 def effective(*, include_connection: bool) -> dict:

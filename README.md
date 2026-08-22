@@ -120,16 +120,61 @@ Changes are written to `/data/settings.json` (a Docker volume, so they persist
 across container recreation) and layer on top of the environment, taking effect
 on the next call.
 
-By default the app runs **open**, and Settings can edit only the non-secret
-placement / deploy defaults — the ESXi **connection + credentials stay
-locked**. Set `VMDEPLOY_PASSWORD` (and optional `VMDEPLOY_USERNAME`, default
-`admin`) in `.env` to require HTTP Basic auth on the whole UI and unlock
-connection/credential editing. The password is **write-only** — the API never
-returns it.
+The hypervisor password is **write-only** — the API never returns it.
 
 Endpoints: `GET /api/templates`, `GET /api/networks`, `GET /api/datastores`,
 `GET`/`PUT /api/settings`, `POST /api/deploy` (returns a job id),
 `GET /api/jobs/{id}` (poll progress + IP).
+
+## Authentication
+
+**Every endpoint requires it.** The app used to run open unless
+`VMDEPLOY_PASSWORD` happened to be set, with the hypervisor credentials as the
+only thing behind that optional flag. It no longer does.
+
+On first run an account is created from `VMDEPLOY_USERNAME` /
+`VMDEPLOY_PASSWORD` if they are set — so an existing deployment keeps the
+credentials it already had — and otherwise one is generated and its password
+printed to the container log once. Accounts live in `/data/users.json` from
+then on.
+
+Three ways in: a **session cookie** from the sign-in page, **HTTP Basic**
+exactly as before (scripts already use it, and the local way in must keep
+working when an issuer is unreachable), and **single sign-on** below.
+
+Passwords are PBKDF2-SHA256. All of it is stdlib — the CLI's no-dependency
+promise and the web extra's package list are both unchanged.
+
+> **Bind to localhost.** HTTP Basic sends its credentials on *every* request,
+> base64-encoded rather than encrypted. Put a TLS terminator in front rather
+> than publishing the plain-HTTP port on all interfaces.
+
+## Single sign-on (optional)
+
+Off unless configured. With no issuer set the app registers no `/sso/callback`
+route at all and behaves exactly as it did before.
+
+Enrol from the UI with a one-time code from the issuer, which writes
+`/data/sso.json` — or set `VMDEPLOY_SSO_ISSUER` and friends to fix the
+decision at install time and make the UI read-only. The environment wins.
+
+Three rules it keeps:
+
+- **An assertion is accepted at exactly one endpoint**, `/sso/callback`, where
+  it is exchanged for an ordinary session cookie. It is never a bearer
+  credential, so no other route gains a way in.
+- **SSO grants access to accounts that already exist here. It never creates
+  them.** The worst a compromised issuer can do is sign in as somebody who
+  already has an account.
+- **The local password keeps working.** An issuer outage must not lock you out
+  of the thing that deploys your VMs.
+
+Verification is `vmdeploy/ed25519.py`: pure stdlib, **verify-only**, no signing
+and never any. The issuer signs; a relying party only ever needs to check a
+signature, and that needs no library.
+
+The tests verify against **real issuer output** committed as a fixture, so if
+the two sides ever drift they fail.
 
 ## Layout
 

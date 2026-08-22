@@ -36,6 +36,23 @@
   .deploy { margin-top:22px; width:100%; padding:12px; font-size:15px; font-weight:600;
             background:var(--accent); color:#fff; border:0; border-radius:9px; cursor:pointer; }
   .deploy:disabled { opacity:.5; cursor:default; }
+
+  /* Secondary action: outlined, not filled. Needs its own colour because
+     .deploy hardcodes #fff for contrast against the accent fill, and
+     inheriting that on a transparent background is unreadable on a light
+     card. */
+  .deploy.secondary { background:transparent; color:var(--fg);
+                      border:1px solid var(--line); }
+  .deploy.secondary:hover { background:var(--card); border-color:var(--accent); }
+  /* Sign out is a word, not a glyph: the power symbol means "power off this
+     machine" elsewhere in the fleet, and this page controls VMs. */
+  .textbtn { flex:none; height:36px; padding:0 12px; border-radius:2px;
+             background:transparent; border:1px solid var(--line);
+             color:var(--mut); font-size:12.5px; cursor:pointer; }
+  .textbtn:hover { border-color:var(--mut); color:var(--fg); }
+  .textbtn:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .topbar-actions { flex:none; display:flex; align-items:center; gap:10px; }
+  .whoami { color:var(--mut); font-size:12.5px; white-space:nowrap; margin:0; }
   .steps { list-style:none; padding:0; margin:16px 0 0; }
   .steps li { padding:6px 0 6px 26px; position:relative; color:var(--mut); font-size:14px; }
   .steps li::before { content:"○"; position:absolute; left:4px; }
@@ -71,13 +88,38 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<!-- Sign-in. Shown until /api/me says the caller is authenticated; the SSO
+     button appears only when an issuer is configured. -->
+<div class="modal-backdrop" id="loginScreen" style="display:flex">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-head"><h2 style="margin:0">Sign in</h2></div>
+    <div class="modal-body">
+      <label>Username</label>
+      <input id="loginUser" autocomplete="username">
+      <label>Password</label>
+      <input id="loginPass" type="password" autocomplete="current-password">
+      <div class="err-msg" id="loginErr" style="display:none"></div>
+      <button class="deploy" id="loginBtn" style="margin-top:14px">Sign in</button>
+      <div id="ssoBlock" style="display:none;margin-top:14px;text-align:center">
+        <div class="hint" style="margin-bottom:8px">or</div>
+        <button class="deploy secondary" id="ssoBtn">Sign in with single sign-on</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap" style="display:none">
   <div class="topbar">
     <div>
       <h1>ESXi VM Deployer</h1>
       <p class="sub">Deploy a template on a standalone ESXi host into a new VM — static IP or DHCP, a sudo user, and SSH.</p>
     </div>
-    <button class="gear" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+    <div class="topbar-actions">
+      <span class="whoami" id="whoami"></span>
+      <button class="textbtn" id="logoutBtn" title="Sign out">Sign out</button>
+      <button class="gear" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+    </div>
   </div>
 
   <!-- Identity -->
@@ -393,7 +435,72 @@ $("deployBtn").onclick = async () => {
     renderSteps("checking"); poll(body.job);
   } catch(e) { $("formErr").textContent = String(e); resetBtn(); }
 };
-loadTemplates();
+// ─── session ────────────────────────────────────────────
+
+async function refreshMe() {
+  try { return await (await fetch("/api/me")).json(); }
+  catch (e) { return { authenticated: false }; }
+}
+
+function showApp(me) {
+  $("loginScreen").style.display = "none";
+  $("appWrap").style.display = "";
+  $("whoami").textContent = me.user || "";
+  loadTemplates();
+}
+
+async function boot() {
+  const me = await refreshMe();
+  if (me.authenticated) { showApp(me); return; }
+  // Only offer the button when an issuer is actually configured — otherwise
+  // it could only ever lead somewhere broken.
+  if (me.sso && me.sso.issuer) {
+    $("ssoBlock").style.display = "";
+    $("ssoBtn").onclick = () => {
+      const next = encodeURIComponent(location.pathname + location.search);
+      location.href = me.sso.issuer + "/sso/authorize?aud="
+        + encodeURIComponent(me.sso.audience) + "&next=" + next;
+    };
+  }
+  const err = new URLSearchParams(location.search).get("sso_error");
+  if (err) {
+    $("loginErr").textContent = err === "unknown_user"
+      ? "That account is not registered on this deployer. Single sign-on grants "
+        + "access to accounts that already exist here; it does not create them."
+      : "Single sign-on failed. Try again, or sign in with a password.";
+    $("loginErr").style.display = "";
+    history.replaceState(null, "", location.pathname);
+  }
+  $("loginUser").focus();
+}
+
+$("loginBtn").onclick = async () => {
+  $("loginErr").style.display = "none";
+  try {
+    const r = await fetch("/api/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: $("loginUser").value.trim(),
+                             password: $("loginPass").value }) });
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.detail || "Sign-in failed");
+    showApp(body);
+  } catch (e) {
+    $("loginErr").textContent = String(e.message || e);
+    $("loginErr").style.display = "";
+    $("loginPass").value = "";
+  }
+};
+
+["loginUser", "loginPass"].forEach(id => {
+  $(id).addEventListener("keydown", e => { if (e.key === "Enter") $("loginBtn").click(); });
+});
+
+$("logoutBtn").onclick = async () => {
+  try { await fetch("/api/logout", { method: "POST" }); } catch (e) {}
+  location.href = "/";
+};
+
+boot();
 </script>
 </body>
 </html>
